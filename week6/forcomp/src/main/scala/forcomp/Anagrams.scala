@@ -34,7 +34,7 @@ object Anagrams {
    *
    *  Note: you must use `groupBy` to implement this method!
    */
-  def wordOccurrences(w: Word): Occurrences = w.toLowerCase.groupBy (c => c).mapValues(_.size).toList.sortWith(_._1 < _._1)
+  def wordOccurrences(w: Word): Occurrences = w.toLowerCase.groupBy (c => c).mapValues(_.size).toList.sorted
 
 
   /** Converts a sentence into its character occurrence list. */
@@ -55,10 +55,10 @@ object Anagrams {
    *    List(('a', 1), ('e', 1), ('t', 1)) -> Seq("ate", "eat", "tea")
    *
    */
-  lazy val dictionaryByOccurrences: Map[Occurrences, List[Word]] = ???
+  lazy val dictionaryByOccurrences: Map[Occurrences, List[Word]] = dictionary groupBy wordOccurrences
 
   /** Returns all the anagrams of a given word. */
-  def wordAnagrams(word: Word): List[Word] = ???
+  def wordAnagrams(word: Word): List[Word] = dictionaryByOccurrences(wordOccurrences(word)) 
 
   /** Returns the list of all subsets of the occurrence list.
    *  This includes the occurrence itself, i.e. `List(('k', 1), ('o', 1))`
@@ -82,7 +82,10 @@ object Anagrams {
    *  Note that the order of the occurrence list subsets does not matter -- the subsets
    *  in the example above could have been displayed in some other order.
    */
-  def combinations(occurrences: Occurrences): List[Occurrences] = ???
+  def combinations(occurrences: Occurrences): List[Occurrences] = {
+    val ocs : List[Occurrences] = occurrences.map( x => (for(i <- 1 to (x._2)) yield (x._1,i)).toList)
+    ocs.foldRight(List[Occurrences](Nil))((x,y) => y ++ (for(i <- x; j <- y) yield (i :: j)))
+  } 
 
   /** Subtracts occurrence list `y` from occurrence list `x`.
    *
@@ -94,7 +97,11 @@ object Anagrams {
    *  Note: the resulting value is an occurrence - meaning it is sorted
    *  and has no zero-entries.
    */
-  def subtract(x: Occurrences, y: Occurrences): Occurrences = ???
+  def subtract(x: Occurrences, y: Occurrences): Occurrences = {
+    val (common, uncommon) = x.partition(oc => y.exists(oc2 => oc._1 == oc2._1))
+    val commonSub = for( ((ch, c1), (ch2,c2)) <- common.zip(y) if c1 != c2) yield (ch, c1-c2)
+    (commonSub ++ uncommon).sorted
+  }
 
   /** Returns a list of all anagram sentences of the given sentence.
    *
@@ -136,5 +143,17 @@ object Anagrams {
    *
    *  Note: There is only one anagram of an empty sentence.
    */
-  def sentenceAnagrams(sentence: Sentence): List[Sentence] = ???
+  def sentenceAnagrams(sentence: Sentence): List[Sentence] = sentenceAnagramsInner(sentenceOccurrences(sentence))
+
+  def sentenceAnagramsInner(occurences: Occurrences): List[Sentence] = {
+    if (occurences.isEmpty) List(Nil)
+    else {
+        val combos : List[Occurrences] = combinations(occurences)
+        for (
+          combo <- combos if dictionaryByOccurrences.contains(combo);
+          ana <- dictionaryByOccurrences(combo);
+          rest <- sentenceAnagramsInner(subtract(occurences, combo))
+        ) yield ana :: rest
+    }
+  }
 }

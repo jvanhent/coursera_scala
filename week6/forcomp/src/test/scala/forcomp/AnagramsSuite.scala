@@ -28,6 +28,9 @@ class AnagramsSuite extends FunSuite  {
     assert(dictionaryByOccurrences.get(List(('a', 1), ('e', 1), ('t', 1))).map(_.toSet) === Some(Set("ate", "eat", "tea")))
   }
 
+  test("combinations") {
+    assert( combinations(List(('a', 2), ('b', 2))).length === 9)
+  }
 
   test("word anagrams: married") {
     assert(wordAnagrams("married").toSet === Set("married", "admirer"))
